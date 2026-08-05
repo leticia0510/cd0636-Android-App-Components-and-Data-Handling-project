@@ -60,8 +60,15 @@ class BuildingDetailViewModel(
      * - Use .asLiveData() to convert Flow to LiveData
      * - Fragment observes this LiveData to display building details
      */
-    val building: LiveData<Building?>
-        get() = TODO("Initialize building LiveData - see TODO comment above")
+    val building: LiveData<Building?> =
+            repository.getBuildingById(buildingId)
+                .onEach {
+                    Log.d(
+                        "BuildingDetailViewModel",
+                        "Building loaded: $it"
+                    )
+                }
+                .asLiveData()
 
     // Error state exposed to UI
     private val _errorEvent = MutableLiveData<Event<ErrorEvent>>()
@@ -88,8 +95,43 @@ class BuildingDetailViewModel(
      * - Use when expression for status-specific success messages
      * - Fragment shows success message via Snackbar
      */
-    fun updateVisitStatus(status: VisitStatus) {
-        TODO("Implement updateVisitStatus() - see TODO comment above")
+    fun updateVisitStatus(buildingId: Int, status: VisitStatus) {
+        if (buildingId == -1) {
+            _errorEvent.value = Event(
+                ErrorEvent(
+                    "Invalid building ID"
+                )
+            )
+        return
+    }
+    viewModelScope.launch {
+        repository.updateBuildingVisitStatus(
+            buildingId,
+            status
+        )
+            .onSuccess {
+                val message = when (status) {
+                    VisitStatus.VISITED ->
+                        "Building marked as visited"
+
+                    VisitStatus.BUCKET_LIST ->
+                        "Building added to bucket list"
+
+                    VisitStatus.NOT_VISITED ->
+                        "Building marked as not visited"
+                }
+                _updateSuccess.value = Event(message)
+            }
+            .onFailure { error ->
+                _errorEvent.value = Event(
+                    ErrorEvent(
+                        error.message
+                            ?: "Failed to update building status"
+                    )
+                )
+            }
+
+        }
     }
 }
 

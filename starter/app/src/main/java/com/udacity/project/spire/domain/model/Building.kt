@@ -12,4 +12,14 @@ data class Building(
     // NOTE (Informational - Not a TODO): Add remaining class properties
     // This is a reference - the complete Building model is in the solution
     // You'll map to this model from BuildingEntity in TODO #4
+    val name: String,
+    val imageUrl: String,
+    val heightMeters: Int,
+    val floors: Int,
+    val yearCompleted: Int,
+    val architecturalStyle: String,
+    val description: String,
+    val visitStatus: VisitStatus,
+    val city: String,
+    val country: String
 )

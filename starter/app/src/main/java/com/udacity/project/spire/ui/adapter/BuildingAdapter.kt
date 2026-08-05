@@ -38,7 +38,13 @@ class BuildingAdapter(
      * HINT: Same implementation as BuildingPagingAdapter - inflate ItemBuildingBinding and return BuildingViewHolder
      */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BuildingViewHolder {
-        TODO("Implement onCreateViewHolder() - see BuildingPagingAdapter for reference")
+        val binding = ItemBuildingBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+
+        return BuildingViewHolder(binding, onItemClick)
     }
 
     /**
@@ -47,7 +53,7 @@ class BuildingAdapter(
      * HINT: Call holder.bind(getItem(position)) - simpler than PagingAdapter since getItem() never returns null
      */
     override fun onBindViewHolder(holder: BuildingViewHolder, position: Int) {
-        TODO("Implement onBindViewHolder() - see TODO comment above")
+        holder.bind(getItem(position))
     }
 
     /**
@@ -60,8 +66,31 @@ class BuildingAdapter(
         private val onItemClick: (Building) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(building: Building) {
-            TODO("Implement bind() - same as BuildingPagingAdapter.ViewHolder.bind()")
+            fun bind(building: Building) {
+                binding.apply {
+
+                    textBuildingName.text = building.name
+
+                    textBuildingLocation.text =
+                        "${building.city}, ${building.country}"
+
+                    textBuildingHeight.text =
+                        "${building.heightMeters} m"
+
+                    textBuildingFloors.text =
+                        "${building.floors} floors"
+
+                    imageBuilding.load(building.imageUrl) {
+                        crossfade(true)
+                        placeholder(R.drawable.placeholder)
+                        error(R.drawable.placeholder)
+                    }
+
+                    root.setOnClickListener {
+                        onItemClick(building)
+                    }
+                }
+
         }
     }
 

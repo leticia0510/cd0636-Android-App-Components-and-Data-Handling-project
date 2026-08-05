@@ -58,8 +58,21 @@ class MyVisitsViewModel(
      * - Use .asLiveData() to convert Flow to LiveData
      * - Each time _currentStatus changes, the filter re-executes automatically
      */
+
     val buildings: LiveData<List<Building>>
-        get() = TODO("Initialize buildings with switchMap - see TODO comment above")
+        get() = _currentStatus.switchMap { status ->
+            repository
+                .getBuildingsByVisitStatus(status)
+                .catch { exception ->
+                    _errorEvent.value = Event(
+                        ErrorEvent(
+                            exception.message ?: "Unknown error"
+                        )
+                    )
+                    emit(emptyList())
+                }
+                .asLiveData()
+        }
 
     /**
      * TODO #40b: Implement setFilterStatus() method
@@ -72,8 +85,11 @@ class MyVisitsViewModel(
      * - This triggers switchMap above, which updates buildings LiveData
      */
     fun setFilterStatus(status: VisitStatus) {
-        TODO("Implement setFilterStatus() - see TODO comment above")
+        if (_currentStatus.value != status) {
+            _currentStatus.value = status
+        }
     }
+
 }
 
 /**

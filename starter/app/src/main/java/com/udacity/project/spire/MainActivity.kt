@@ -57,7 +57,10 @@ class MainActivity : AppCompatActivity() {
      * - Use 'by lazy' for lazy initialization
      */
     private val navController: NavController by lazy {
-        TODO("Get NavController from NavHostFragment - see TODO comment above")
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                    as NavHostFragment
+        navHostFragment.navController
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +87,13 @@ class MainActivity : AppCompatActivity() {
          * - setupWithNavController links bottom nav to navigation (auto-selects tabs)
          */
         // Implement the steps above here
+        appBarConfiguration = AppBarConfiguration(topLevelDestinations)
+        setupActionBarWithNavController(
+            navController,
+            appBarConfiguration
+        )
+        binding.bottomNavigation.setupWithNavController(navController)
+        setupBottomNavVisibility()
     }
 
     /**
@@ -104,7 +114,22 @@ class MainActivity : AppCompatActivity() {
      * - Detail screens should hide bottom nav
      */
     private fun setupBottomNavVisibility() {
-        TODO("Setup bottom navigation visibility - see TODO comment above")
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            binding.bottomNavigation.visibility =
+                if (destination.id in topLevelDestinations) {
+                    View.VISIBLE
+                }
+                else {
+                    View.GONE
+                }
+            binding.collapsingToolbar.title =
+                when (destination.id) {
+                    R.id.buildingsFragment -> "Buildings"
+                    R.id.myVisitsFragment -> "My Visits"
+                    R.id.statisticsFragment -> "Statistics"
+                    else -> destination.label
+                }
+        }
     }
 
     /**
@@ -118,6 +143,7 @@ class MainActivity : AppCompatActivity() {
      * - Chain with || super.onSupportNavigateUp() as fallback
      */
     override fun onSupportNavigateUp(): Boolean {
-        TODO("Implement up navigation - see TODO comment above")
+        return navController.navigateUp(appBarConfiguration) ||
+                super.onSupportNavigateUp()
     }
 }

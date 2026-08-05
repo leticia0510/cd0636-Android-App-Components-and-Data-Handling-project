@@ -197,8 +197,8 @@ class DefaultBuildingRepository(
      * @return The building entity ready to be inserted into the database
      */
     private suspend fun buildingDtoToEntity(dto: BuildingDto): BuildingEntity {
-        //val countryId = getOrCreateCountry(dto.country.name)
-        //val cityId = getOrCreateCity(dto.city.name, countryId)
+        val countryId = getOrCreateCountry(dto.country.name)
+        val cityId = getOrCreateCity(dto.city.name, countryId)
 
         return BuildingEntity(
             id = dto.id,
@@ -206,6 +206,15 @@ class DefaultBuildingRepository(
             // Map all properties from BuildingDto to BuildingEntity
             // Use getOrCreateCountry() and getOrCreateCity() to get foreign key IDs
             // Convert VisitStatus to VisitStatusEntity using .toEntity()
+            name = dto.name,
+            imageUrl = dto.imageUrl,
+            heightMeters = dto.heightMeters,
+            floors = dto.floors,
+            yearCompleted = dto.yearCompleted,
+            architecturalStyle = dto.architecturalStyle,
+            description = dto.description,
+            visitStatus = VisitStatus.NOT_VISITED.toEntity(),
+            cityId = cityId
         )
     }
 
@@ -227,7 +236,26 @@ class DefaultBuildingRepository(
      * - Use .map() to transform PagingData<Entity> to PagingData<Domain>
      */
     override fun getBuildings(): Flow<PagingData<Building>> {
-        TODO("Implement getBuildings() - see TODO comment above")
+        return Pager(
+            config = PagingConfig(
+                pageSize = BuildingRepository.DEFAULT_PAGE_SIZE,
+                enablePlaceholders = false,
+                prefetchDistance = 2
+            ),
+            remoteMediator = BuildingRemoteMediator(
+                apiService = apiService,
+                database = database
+            ),
+            pagingSourceFactory = {
+                buildingDao.getBuildingsPagingSource()
+            }
+        )
+            .flow
+            .map { pagingData ->
+                pagingData.map {
+                    it.toDomainModel()
+                }
+            }
     }
 
     /**
@@ -242,7 +270,11 @@ class DefaultBuildingRepository(
      * - Used in BuildingDetailScreen
      */
     override fun getBuildingById(id: Int): Flow<Building?> {
-        TODO("Implement getBuildingById() - see TODO comment above")
+        return buildingDao
+            .getBuildingById(id)
+            .map { building ->
+                building?.toDomainModel()
+            }
     }
 
     /**
@@ -262,8 +294,22 @@ class DefaultBuildingRepository(
      * - Used for pull-to-refresh functionality
      */
     override suspend fun refreshBuildings(): Result<Unit> {
-        TODO("Implement refreshBuildings() - see TODO comment above")
-    }
+        return withContext(ioDispatcher) {
+
+            try {
+                val response = apiService.getBuildingsPaginated(
+                    page = 1,
+                    limit = 15
+                )
+                val entities = response.buildings.map {
+                    buildingDtoToEntity(it)
+                }
+                buildingDao.insertBuildings(entities)
+                Result.success(Unit)
+            } catch(e: Exception){
+                Result.failure(e)
+            }
+        }    }
 
     /**
      * TODO #32: Implement refreshBuildingsPaginated()
@@ -281,7 +327,20 @@ class DefaultBuildingRepository(
         page: Int,
         limit: Int
     ): Result<PaginationMetadata?> {
-        TODO("Implement refreshBuildingsPaginated() - see TODO comment above")
+        return withContext(ioDispatcher){
+            try {
+                val response =
+                    apiService.getBuildingsPaginated(page, limit)
+                val entities =
+                    response.buildings.map {
+                        buildingDtoToEntity(it)
+                    }
+                buildingDao.insertBuildings(entities)
+                Result.success(response.pagination)
+            } catch(e: Exception){
+                Result.failure(e)
+            }
+        }
     }
 
     /**
@@ -306,7 +365,26 @@ class DefaultBuildingRepository(
         buildingId: Int,
         status: VisitStatus
     ): Result<Unit> {
-        TODO("Implement updateBuildingVisitStatus() - see TODO comment above")
+        return withContext(ioDispatcher){
+            try {
+                val building =
+                    buildingDao.getBuildingById(buildingId)
+                        .first()
+                if(building == null){
+                    return@withContext Result.failure(
+                        Exception("Building not found")
+                    )
+                }
+                val updated =
+                    building.building.copy(
+                        visitStatus = status.toEntity()
+                    )
+                buildingDao.updateBuilding(updated)
+                Result.success(Unit)
+            } catch(e: Exception){
+                Result.failure(e)
+            }
+        }
     }
 
     /**
@@ -320,7 +398,14 @@ class DefaultBuildingRepository(
      * - Map each entity using .toDomainModel()
      */
     override fun getBuildingsByCountry(country: String): Flow<List<Building>> {
-        TODO("Implement getBuildingsByCountry() - see TODO comment above")
+        return buildingDao
+            .getBuildingsByCountry(country)
+            .map { buildings ->
+
+                buildings.map {
+                    it.toDomainModel()
+                }
+            }
     }
 
     /**
@@ -335,7 +420,15 @@ class DefaultBuildingRepository(
      * - Used in MyVisitsScreen for filtering
      */
     override fun getBuildingsByVisitStatus(status: VisitStatus): Flow<List<Building>> {
-        TODO("Implement getBuildingsByVisitStatus() - see TODO comment above")
+        return buildingDao
+            .getBuildingsByVisitStatus(
+                status.toEntity()
+            )
+            .map { buildings ->
+                buildings.map {
+                    it.toDomainModel()
+                }
+            }
     }
 
     /**
@@ -350,7 +443,13 @@ class DefaultBuildingRepository(
      * - Used in CountriesScreen
      */
     override fun getAllCountries(): Flow<List<String>> {
-        TODO("Implement getAllCountries() - see TODO comment above")
+        return countryDao
+            .getAllCountries()
+            .map { countries ->
+                countries.map {
+                    it.name
+                }
+            }
     }
 
     /**
@@ -372,6 +471,39 @@ class DefaultBuildingRepository(
      * - Used in StatisticsScreen
      */
     override suspend fun getStatistics(): BuildingStatistics {
-        TODO("Implement getStatistics() - see TODO comment above")
+
+        return withContext(ioDispatcher){
+
+            val total =
+                buildingDao.getBuildingCount()
+
+            val visited =
+                buildingDao.getCountByStatus(
+                    VisitStatus.VISITED.toEntity()
+                )
+
+            val bucket =
+                buildingDao.getCountByStatus(
+                    VisitStatus.BUCKET_LIST.toEntity()
+                )
+
+            val countries =
+                buildingDao.getVisitedCountriesCount(
+                    VisitStatus.VISITED.toEntity()
+                )
+
+            val meters =
+                buildingDao.getTotalMetersClimbed(
+                    VisitStatus.VISITED.toEntity()
+                ) ?: 0
+
+            BuildingStatistics(
+                totalBuildings = total,
+                visitedCount = visited,
+                bucketListCount = bucket,
+                countriesExplored = countries,
+                totalMetersClimbed = meters
+            )
+        }
     }
 }

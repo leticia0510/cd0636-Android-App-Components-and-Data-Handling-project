@@ -1,5 +1,9 @@
 package com.udacity.project.spire.data.local.entity
 
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
 /**
  * Remote keys entity for building pagination.
  * Stores page number metadata for each building to enable proper pagination.
@@ -31,22 +35,27 @@ package com.udacity.project.spire.data.local.entity
  *  - androidx.room.Entity
  *  - androidx.room.PrimaryKey
  */
+@Entity("building_remote_keys")
 data class BuildingRemoteKeys(
     /**
      * Primary key is the building ID.
      * Maps 1:1 with BuildingEntity.
      */
+    @PrimaryKey(autoGenerate = false)
+    @ColumnInfo("building_id")
     val buildingId: Int,
 
     /**
      * Previous page number.
      * Null for items on the first page.
      */
+    @ColumnInfo("prev_key")
     val prevKey: Int?,
 
     /**
      * Next page number.
      * Null when there are no more pages (endOfPaginationReached).
      */
+    @ColumnInfo("next_key")
     val nextKey: Int?
 )

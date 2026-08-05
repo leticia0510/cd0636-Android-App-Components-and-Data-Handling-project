@@ -1,6 +1,8 @@
 package com.udacity.project.spire.data.remote.api
 
+import com.udacity.project.spire.data.remote.dto.BuildingDto
 import com.udacity.project.spire.data.remote.dto.BuildingsResponse
+import com.udacity.project.spire.data.remote.dto.PaginationMetadata
 import retrofit2.http.GET
 import retrofit2.http.Query
 

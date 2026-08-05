@@ -11,8 +11,10 @@ import com.udacity.project.spire.data.local.entity.BuildingRemoteKeys
 import com.udacity.project.spire.data.local.entity.BuildingWithDetails
 import com.udacity.project.spire.data.local.entity.CityEntity
 import com.udacity.project.spire.data.local.entity.CountryEntity
+import com.udacity.project.spire.data.local.entity.toEntity
 import com.udacity.project.spire.data.remote.api.BuildingApiService
 import com.udacity.project.spire.data.remote.dto.BuildingDto
+import com.udacity.project.spire.domain.model.VisitStatus
 
 /**
  * RemoteMediator for Building data.
@@ -72,7 +74,73 @@ class BuildingRemoteMediator(
         loadType: LoadType,
         state: PagingState<Int, BuildingWithDetails>
     ): MediatorResult {
-        TODO("Implement RemoteMediator.load() - see TODO comment above for detailed steps")
+        val page = when (loadType) {
+            LoadType.REFRESH -> {
+                val remoteKeys = getRemoteKeyClosestToCurrentPosition(state)
+                remoteKeys?.nextKey?.minus(1) ?: initialPage
+            }
+            LoadType.PREPEND -> {
+                return MediatorResult.Success(
+                    endOfPaginationReached = true
+                )
+            }
+            LoadType.APPEND -> {
+                val remoteKeys = getRemoteKeyForLastItem(state)
+
+                if (remoteKeys?.nextKey == null) {
+                    return MediatorResult.Success(
+                        endOfPaginationReached = remoteKeys != null
+                    )
+                }
+                remoteKeys.nextKey
+            }
+        }
+
+        return try {
+            val response = apiService.getBuildingsPaginated(page)
+            val buildings = response.buildings
+            val endOfPaginationReached = buildings.isEmpty()
+
+            database.withTransaction {
+
+                if (loadType == LoadType.REFRESH) {
+                    remoteKeysDao.clearRemoteKeys()
+                    buildingDao.clearBuildings()
+                }
+
+                val prevKey = if (page == initialPage) {
+                    null
+                } else {
+                    page - 1
+                }
+
+                val nextKey = if (endOfPaginationReached) {
+                    null
+                } else {
+                    page + 1
+                }
+
+                val keys = buildings.map { building ->
+
+                    BuildingRemoteKeys(
+                        buildingId = building.id,
+                        prevKey = prevKey,
+                        nextKey = nextKey
+                    )
+                }
+                val entities = buildings.map { dto ->
+
+                    buildingDtoToEntity(dto)
+                }
+                remoteKeysDao.insertAll(keys)
+                buildingDao.insertBuildings(entities)
+            }
+            MediatorResult.Success(
+                endOfPaginationReached = endOfPaginationReached
+            )
+        } catch (e: Exception) {
+            MediatorResult.Error(e)
+        }
     }
 
     /**
@@ -80,8 +148,14 @@ class BuildingRemoteMediator(
      * Creates or gets the necessary Country and City entities.
      */
     private suspend fun buildingDtoToEntity(dto: BuildingDto): BuildingEntity {
-        //val countryId = getOrCreateCountry()
-        //val cityId = getOrCreateCity()
+        val countryId = getOrCreateCountry(
+            countryName = dto.country.name,
+            code = dto.country.code
+        )
+        val cityId = getOrCreateCity(
+            cityName = dto.city.name,
+            countryId = countryId
+        )
 
         return BuildingEntity(
             id = dto.id,
@@ -89,6 +163,15 @@ class BuildingRemoteMediator(
             // Map all properties from BuildingDto to BuildingEntity
             // Use getOrCreateCountry() and getOrCreateCity() to get foreign key IDs
             // Convert VisitStatus to VisitStatusEntity using .toEntity()
+            name = dto.name,
+            imageUrl = dto.imageUrl,
+            heightMeters = dto.heightMeters,
+            floors = dto.floors,
+            yearCompleted = dto.yearCompleted,
+            architecturalStyle = dto.architecturalStyle,
+            description = dto.description,
+            visitStatus = VisitStatus.NOT_VISITED.toEntity(),
+            cityId = cityId
         )
     }
 

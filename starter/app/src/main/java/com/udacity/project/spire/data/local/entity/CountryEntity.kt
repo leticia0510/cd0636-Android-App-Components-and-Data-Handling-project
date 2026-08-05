@@ -1,5 +1,9 @@
 package com.udacity.project.spire.data.local.entity
 
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
 /**
  * Room entity representing a country.
  * A country can have many cities.
@@ -18,7 +22,11 @@ package com.udacity.project.spire.data.local.entity
  *  - androidx.room.PrimaryKey
  *  - androidx.room.Index
  */
+@Entity(tableName = "countries",
+    indices = [Index(value = ["name"])]
+)
 data class CountryEntity(
+    @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
     val code: String  // ISO country code (e.g., "US", "AE", "CN")

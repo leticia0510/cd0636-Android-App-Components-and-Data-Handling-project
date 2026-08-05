@@ -47,7 +47,13 @@ class BuildingPagingAdapter(
      * - Return BuildingViewHolder(binding, onItemClick)
      */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BuildingViewHolder {
-        TODO("Implement onCreateViewHolder() - see TODO comment above")
+        val binding = ItemBuildingBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+
+        return BuildingViewHolder(binding, onItemClick)
     }
 
     /**
@@ -61,7 +67,17 @@ class BuildingPagingAdapter(
      * - Call holder.bind(building) to update UI
      */
     override fun onBindViewHolder(holder: BuildingViewHolder, position: Int) {
-        TODO("Implement onBindViewHolder() - see TODO comment above")
+        val building = getItem(position)
+
+
+        Log.d(
+            "BuildingAdapter",
+            "POSITION=$position BUILDING=$building"
+        )
+
+        if (building != null) {
+            holder.bind(building)
+        }
     }
 
     /**
@@ -92,7 +108,29 @@ class BuildingPagingAdapter(
          * - root is the entire item layout
          */
         fun bind(building: Building) {
-            TODO("Implement bind() - see TODO comment above")
+            binding.apply {
+
+                textBuildingName.text = building.name
+
+                textBuildingLocation.text =
+                    "${building.city}, ${building.country}"
+
+                textBuildingHeight.text =
+                    "${building.heightMeters} m"
+
+                textBuildingFloors.text =
+                    "${building.floors} floors"
+
+                imageBuilding.load(building.imageUrl) {
+                    crossfade(true)
+                    placeholder(R.drawable.placeholder)
+                    error(R.drawable.placeholder)
+                }
+
+                root.setOnClickListener {
+                    onItemClick(building)
+                }
+            }
         }
     }
 

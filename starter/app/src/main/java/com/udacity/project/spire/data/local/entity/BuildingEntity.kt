@@ -1,7 +1,15 @@
 package com.udacity.project.spire.data.local.entity
 
+import androidx.room.ColumnInfo
+import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import androidx.room.Relation
 import com.udacity.project.spire.domain.model.Building
 import com.udacity.project.spire.domain.model.VisitStatus
+import kotlin.String
 
 /**
  * Room entity representing a building in the local database.
@@ -35,13 +43,32 @@ import com.udacity.project.spire.domain.model.VisitStatus
  *  - androidx.room.ForeignKey
  *  - androidx.room.Index
  */
+@Entity(tableName = "buildings",
+    foreignKeys = [ForeignKey(
+        entity = CityEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["city_id"],
+        onDelete = ForeignKey.RESTRICT,
+        onUpdate = ForeignKey.CASCADE
+    )],
+    indices = [Index("city_id"), Index("name")]
+)
 data class BuildingEntity(
+    @PrimaryKey(autoGenerate = false)
     val id: Int,
     // TODO (Part of #3): Add remaining properties
     // Refer to Building domain model for the complete list of properties needed
     // Include: name, imageUrl, heightMeters, floors, yearCompleted, architecturalStyle,
     //          description, visitStatus (as VisitStatusEntity), cityId (foreign key)
-
+    val name: String,
+    @ColumnInfo("image_url") val imageUrl: String,
+    @ColumnInfo("height_m") val heightMeters: Int,
+    val floors: Int,
+    @ColumnInfo("year_completed") val yearCompleted: Int,
+    @ColumnInfo("architectural_style") val architecturalStyle: String,
+    val description: String,
+    @ColumnInfo("visit_status") val visitStatus: VisitStatusEntity,
+    @ColumnInfo(name = "city_id") val cityId: Int
 )
 
 /**
@@ -65,7 +92,8 @@ data class BuildingEntity(
  *  - androidx.room.Relation
  */
 data class BuildingWithDetails(
-    val building: BuildingEntity,
+    @Embedded val building: BuildingEntity,
+    @Relation(entity = CityEntity::class, parentColumn = "city_id", entityColumn = "id")
     val city: CityWithCountry
 )
 
@@ -87,7 +115,8 @@ data class BuildingWithDetails(
  *  - androidx.room.Relation
  */
 data class CityWithCountry(
-    val city: CityEntity,
+    @Embedded val city: CityEntity,
+    @Relation(parentColumn = "country_id", entityColumn = "id")
     val country: CountryEntity
 )
 
@@ -100,6 +129,16 @@ fun BuildingWithDetails.toDomainModel(): Building {
         // TODO (Part of #4): Add remaining properties
         // Map all properties from building, city, and country to the Building domain model
         // Use city.city.name, city.country.name, building.visitStatus.toDomainModel(), etc.
+        name = building.name,
+        imageUrl = building.imageUrl,
+        heightMeters = building.heightMeters,
+        floors = building.floors,
+        yearCompleted = building.yearCompleted,
+        architecturalStyle = building.architecturalStyle,
+        description = building.description,
+        visitStatus = building.visitStatus.toDomainModel(),
+        city = city.city.name,
+        country = city.country.name
     )
 }
 

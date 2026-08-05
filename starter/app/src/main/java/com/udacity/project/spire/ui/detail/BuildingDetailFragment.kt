@@ -81,6 +81,33 @@ class BuildingDetailFragment : Fragment() {
             // 2. Load image with Coil: buildingImage.load(building.imageUrl)
             // 3. Call updateButtons(building.visitStatus) to set button states
             //updateButtons(building.visitStatus)
+            textBuildingName.text =
+                building.name
+
+            textLocation.text =
+                "${building.city}, ${building.country}"
+
+            textHeight.text =
+                building.heightMeters.toString()
+
+            textFloors.text =
+                building.floors.toString()
+
+            textYear.text =
+                building.yearCompleted.toString()
+
+            textStyle.text = building.architecturalStyle
+
+            textDescription.text =
+                building.description
+
+            imageBuilding.load(building.imageUrl) {
+                crossfade(true)
+                placeholder(R.drawable.placeholder)
+                error(R.drawable.placeholder)
+            }
+
+            updateButtons(building.visitStatus)
         }
     }
 
@@ -91,6 +118,18 @@ class BuildingDetailFragment : Fragment() {
                 // If currently BUCKET_LIST -> change to NOT_VISITED
                 // If currently NOT_VISITED -> change to BUCKET_LIST
                 // Call viewModel.updateVisitStatus(building.id, newStatus)
+                val newStatus =
+                    if (building.visitStatus == VisitStatus.BUCKET_LIST) {
+                        VisitStatus.NOT_VISITED
+                    }
+                    else {
+                        VisitStatus.BUCKET_LIST
+                    }
+
+                viewModel.updateVisitStatus(
+                    building.id,
+                    newStatus
+                )
             }
         }
 
@@ -100,6 +139,17 @@ class BuildingDetailFragment : Fragment() {
                 // If currently VISITED -> change to NOT_VISITED
                 // If currently NOT_VISITED or BUCKET_LIST -> change to VISITED
                 // Call viewModel.updateVisitStatus(building.id, newStatus)
+                val newStatus =
+                    if (building.visitStatus == VisitStatus.VISITED) {
+                        VisitStatus.NOT_VISITED
+                    }
+                    else {
+                        VisitStatus.VISITED
+                    }
+                viewModel.updateVisitStatus(
+                    building.id,
+                    newStatus
+                )
             }
         }
     }
