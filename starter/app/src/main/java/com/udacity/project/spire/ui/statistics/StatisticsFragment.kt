@@ -68,6 +68,11 @@ class StatisticsFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.loadStatistics()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

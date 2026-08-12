@@ -216,6 +216,7 @@ class DefaultBuildingRepository(
             visitStatus = VisitStatus.NOT_VISITED.toEntity(),
             cityId = cityId
         )
+        Log.d("BuildingRepository", "Building ${dto.id}: imageUrl=${dto.imageUrl}")
     }
 
     /**
